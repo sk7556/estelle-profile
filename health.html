@@ -327,19 +327,31 @@
             }
         },
         mounted() {
-            // Load logs from LocalStorage
+            // Load logs
             const savedLogs = localStorage.getItem('bracer_health_logs');
             if (savedLogs) {
                 this.logs = JSON.parse(savedLogs);
+            }
+            
+            // Load API Key safely
+            const savedKey = localStorage.getItem('bracer_api_key');
+            if (savedKey) {
+                this.apiKey = savedKey;
             }
         },
         methods: {
             saveApiKey() {
                 if (this.tempApiKey.trim()) {
                     this.apiKey = this.tempApiKey.trim();
+                    localStorage.setItem('bracer_api_key', this.apiKey); // Save to browser
                     this.tempApiKey = '';
-                    alert('API 키가 설정되었습니다. (새로고침 시 초기화됨)');
+                    alert('API 키가 브라우저에 안전하게 저장되었습니다! 이제 다시 입력할 필요 없습니다.');
                 }
+            },
+            clearApiKey() {
+                this.apiKey = '';
+                localStorage.removeItem('bracer_api_key');
+                alert('API 키가 삭제되었습니다.');
             },
             addLog() {
                 if (!this.newLog.note.trim()) {
