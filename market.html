@@ -242,13 +242,14 @@
                                 console.warn("Google Search Failed, trying fallback...", e)
                                 
                                 // Explicitly handle 403 (Service Not Enabled) or other API errors
-                                // If Google fails, use Pollinations with a different seed
-                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
+                                // If Google fails, use Pollinations with Anime/Pixiv Style
+                                const prompt = `anime style illustration of ${keyword}, pixiv style, high quality, masterpiece, 8k`
+                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
                             }
                         } else {
                             // 2. Magic Mode (Pollinations.ai) - No key needed
-                            // Using a random seed to vary results slightly or just direct prompt
-                            imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 1000)}`
+                            const prompt = `anime style illustration of ${keyword}, pixiv style, high quality, masterpiece, 8k`
+                            imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 1000)}&model=flux`
                         }
 
                         addItem(keyword, imageUrl)
@@ -313,7 +314,15 @@
                     
                     // Force a different generator params to avoid cache/same error
                     // Add a random timestamp to bypass browser cache
-                    item.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&t=${Date.now()}&model=flux`
+                    // Try a different AI model (default) or fallback to LoremFlickr for stability
+                    if (item.retryCount === 1) {
+                         // Retry 1: AI with simpler params (Default model, faster)
+                         item.url = `https://image.pollinations.ai/prompt/anime style ${encodeURIComponent(item.keyword)}, pixiv masterpiece, 8k resolution?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
+                    } else {
+                         // Retry 2: Fallback to LoremFlickr (Real photos, very stable)
+                         console.log(`AI failed, switching to LoremFlickr for ${item.keyword}...`)
+                         item.url = `https://loremflickr.com/400/400/${encodeURIComponent(item.keyword)}?lock=${Math.floor(Math.random() * 9999)}`
+                    }
                 }
 
                 return {
