@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>에스텔의 만물상 (Estelle's General Store)</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Gowun Batang', serif;
+            background-color: #fdfaf5;
+            background-image: radial-gradient(#d7ccc8 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .wood-frame {
+            background: #8d6e63;
+            border: 4px solid #5d4037;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .shelf-bg {
+            background: #d7ccc8;
+            background-image: linear-gradient(to bottom, transparent 95%, rgba(0,0,0,0.1) 95%);
+            background-size: 100% 20px;
+        }
+
+        .item-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #c0392b;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Polaroid Effect */
+        .polaroid {
+            background: #fff;
+            padding: 10px 10px 25px 10px;
+            box-shadow: 2px 3px 5px rgba(0,0,0,0.15);
+            transform: rotate(var(--rotation));
+        }
+
+        .nav-link {
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="text-[#2c2c2c]">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="bg-[#2c3e50] text-white p-4 shadow-md fixed w-full z-50">
+            <div class="container mx-auto flex justify-between items-center">
+                <a href="index.html" class="font-bold text-xl tracking-wider hover:text-[#ecf0f1]">🛡️ Bracer Guild</a>
+                <div class="space-x-6 text-sm">
+                    <a href="index.html" class="nav-link text-gray-300">Main</a>
+                    <a href="profile.html" class="nav-link text-gray-300">Profile</a>
+                    <a href="health.html" class="nav-link text-gray-300">Health Log</a>
+                    <a href="#" class="nav-link text-white font-bold border-b-2 border-white pb-1">General Store</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto pt-24 pb-12 px-4">
+            
+            <!-- Header -->
+            <div class="text-center mb-10">
+                <div class="inline-block bg-[#c0392b] text-white px-4 py-1 rounded-full text-sm font-bold mb-2 shadow-sm">NEW OPEN!</div>
+                <h1 class="text-4xl font-bold text-[#5d4037] mb-2">📦 에스텔의 만물상</h1>
+                <p class="text-[#795548] italic">"뭐든지 구해다 줄게! 말만 해!"</p>
+            </div>
+
+            <!-- Input Area -->
+            <div class="max-w-xl mx-auto mb-12 relative">
+                <div class="flex shadow-lg rounded-lg overflow-hidden border-2 border-[#8d6e63]">
+                    <input 
+                        v-model="searchKeyword" 
+                        @keyup.enter="searchImage"
+                        type="text" 
+                        placeholder="가판대에 올릴 물건을 입력해 (예: 맛있는 라면)" 
+                        class="flex-grow px-6 py-4 text-lg focus:outline-none bg-[#fffaf0] placeholder-[#a1887f]"
+                        :disabled="isLoading"
+                    >
+                    <button 
+                        @click="searchImage" 
+                        class="bg-[#8d6e63] hover:bg-[#6d4c41] text-white px-8 py-2 font-bold transition-colors flex items-center justify-center min-w-[100px]"
+                        :disabled="isLoading"
+                    >
+                        <div v-if="isLoading" class="loading-spinner w-6 h-6 border-2"></div>
+                        <span v-else>구하기!</span>
+                    </button>
+                </div>
+                <!-- API Key Config Toggle -->
+                <button @click="showConfig = !showConfig" class="absolute -bottom-8 right-0 text-xs text-[#8d6e63] underline hover:text-[#5d4037]">
+                    ⚙️ 검색 설정 (API Key)
+                </button>
+            </div>
+
+            <!-- Config Panel (Hidden by default) -->
+            <div v-if="showConfig" class="max-w-xl mx-auto mb-8 p-4 bg-white border border-[#d7ccc8] rounded shadow-inner text-sm">
+                <h3 class="font-bold mb-2">🔧 Google Custom Search 설정</h3>
+                <p class="mb-2 text-xs text-gray-500">
+                    실제 구글 검색 결과를 보려면 API Key와 Search Engine ID(CX)가 필요해.<br>
+                    키가 없으면 <b class="text-[#c0392b]">자동 생성 이미지(Magic Mode)</b>로 대체될 거야!
+                </p>
+                <div class="grid gap-2">
+                    <input v-model="apiKey" type="password" placeholder="Google API Key" class="border p-2 rounded">
+                    <input v-model="searchEngineId" type="text" placeholder="Search Engine ID (CX)" class="border p-2 rounded">
+                    <button @click="saveConfig" class="bg-[#2c3e50] text-white py-1 rounded hover:bg-[#34495e]">설정 저장하기</button>
+                </div>
+            </div>
+
+            <!-- The Stall (Grid) -->
+            <div class="wood-frame p-6 min-h-[600px] bg-[#e0dcd5] relative">
+                <!-- Roof pattern -->
+                <div class="absolute -top-4 left-0 w-full h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAxMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAgMTAgTDEwIDAgTDIwIDEwIFoiIGZpbGw9IiNjMDM5MmIiLz48L3N2Zz4=')] bg-repeat-x bg-contain"></div>
+
+                <div v-if="items.length === 0" class="h-full flex flex-col items-center justify-center text-[#8d6e63] opacity-50 min-h-[500px]">
+                    <span class="text-6xl mb-4">🕸️</span>
+                    <p>가판대가 비어있어! 뭔가 주문해볼래?</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
+                    <div v-for="(item, index) in items" :key="item.id" 
+                         class="item-card polaroid"
+                         :style="{ '--rotation': item.rotation + 'deg' }">
+                        <div class="aspect-square bg-gray-100 mb-3 overflow-hidden border border-gray-200">
+                            <img :src="item.url" :alt="item.keyword" class="w-full h-full object-cover">
+                        </div>
+                        <div class="text-center">
+                            <div class="font-bold text-[#2c2c2c] truncate">{{ item.keyword }}</div>
+                            <div class="text-xs text-gray-500">{{ item.date }}</div>
+                        </div>
+                        <!-- Delete button (visible on hover) -->
+                        <button @click="removeItem(index)" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-xs">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 text-xs text-[#8d6e63]">
+                * 최대 16개까지만 진열됩니다. (오래된 물건은 창고로 가요!)
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue
+
+        createApp({
+            setup() {
+                const searchKeyword = ref('')
+                const items = ref([])
+                const isLoading = ref(false)
+                const showConfig = ref(false)
+                
+                // Config
+                const apiKey = ref('')
+                const searchEngineId = ref('')
+
+                onMounted(() => {
+                    // Load data from LocalStorage
+                    const savedItems = localStorage.getItem('estelle_store_items')
+                    if (savedItems) items.value = JSON.parse(savedItems)
+
+                    const savedKey = localStorage.getItem('google_api_key')
+                    if (savedKey) apiKey.value = savedKey
+
+                    const savedCx = localStorage.getItem('google_cx')
+                    if (savedCx) searchEngineId.value = savedCx
+                })
+
+                const saveConfig = () => {
+                    localStorage.setItem('google_api_key', apiKey.value)
+                    localStorage.setItem('google_cx', searchEngineId.value)
+                    showConfig.value = false
+                    alert('설정이 저장되었어! 이제 진짜 구글 검색을 해볼까? 😎')
+                }
+
+                const searchImage = async () => {
+                    const keyword = searchKeyword.value.trim()
+                    if (!keyword) return
+
+                    isLoading.value = true
+
+                    try {
+                        let imageUrl = ''
+
+                        // 1. Try Google Search if keys exist
+                        if (apiKey.value && searchEngineId.value) {
+                            try {
+                                const response = await fetch(`https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(keyword)}&cx=${searchEngineId.value}&key=${apiKey.value}&searchType=image&num=1`)
+                                const data = await response.json()
+                                if (data.items && data.items.length > 0) {
+                                    imageUrl = data.items[0].link
+                                } else {
+                                    throw new Error('No results')
+                                }
+                            } catch (e) {
+                                console.error("Google Search Failed, falling back to Magic Mode", e)
+                                // Fallback
+                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true`
+                            }
+                        } else {
+                            // 2. Magic Mode (Pollinations.ai) - No key needed
+                            // Using a random seed to vary results slightly or just direct prompt
+                            imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 1000)}`
+                        }
+
+                        addItem(keyword, imageUrl)
+                        searchKeyword.value = '' // Clear input
+
+                    } catch (error) {
+                        alert('앗! 물건을 구해오다가 넘어졌어... 다시 시도해볼래? 😭')
+                        console.error(error)
+                    } finally {
+                        isLoading.value = false
+                    }
+                }
+
+                const addItem = (keyword, url) => {
+                    const newItem = {
+                        id: Date.now(),
+                        keyword: keyword,
+                        url: url,
+                        date: new Date().toLocaleDateString(),
+                        rotation: (Math.random() * 6) - 3 // Random rotation -3deg to 3deg
+                    }
+
+                    // Add to beginning (unshift)
+                    items.value.unshift(newItem)
+
+                    // Keep only 16 items
+                    if (items.value.length > 16) {
+                        items.value.pop()
+                    }
+
+                    saveItems()
+                }
+
+                const removeItem = (index) => {
+                    items.value.splice(index, 1)
+                    saveItems()
+                }
+
+                const saveItems = () => {
+                    localStorage.setItem('estelle_store_items', JSON.stringify(items.value))
+                }
+
+                return {
+                    searchKeyword,
+                    items,
+                    isLoading,
+                    searchImage,
+                    removeItem,
+                    showConfig,
+                    apiKey,
+                    searchEngineId,
+                    saveConfig
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
