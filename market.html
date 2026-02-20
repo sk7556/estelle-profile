@@ -5,15 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>에스텔의 만물상 (Estelle's General Store)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- Tailwind CSS (Using script just for CDN warning suppression in dev, but still CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {},
-            },
-        }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap');
 
@@ -63,7 +55,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Polaroid Effect */
         .polaroid {
             background: #fff;
             padding: 10px 10px 25px 10px;
@@ -83,7 +74,6 @@
 <body class="text-[#2c2c2c]">
 
     <div id="app" class="min-h-screen flex flex-col">
-        <!-- Navigation -->
         <nav class="bg-[#2c3e50] text-white p-4 shadow-md fixed w-full z-50">
             <div class="container mx-auto flex justify-between items-center">
                 <a href="index.html" class="font-bold text-xl tracking-wider hover:text-[#ecf0f1]">🛡️ Bracer Guild</a>
@@ -96,17 +86,14 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
         <main class="flex-grow container mx-auto pt-24 pb-12 px-4">
             
-            <!-- Header -->
             <div class="text-center mb-10">
                 <div class="inline-block bg-[#c0392b] text-white px-4 py-1 rounded-full text-sm font-bold mb-2 shadow-sm">NEW OPEN!</div>
                 <h1 class="text-4xl font-bold text-[#5d4037] mb-2">📦 에스텔의 만물상</h1>
                 <p class="text-[#795548] italic">"뭐든지 구해다 줄게! 말만 해!"</p>
             </div>
 
-            <!-- Input Area -->
             <div class="max-w-xl mx-auto mb-12 relative">
                 <div class="flex shadow-lg rounded-lg overflow-hidden border-2 border-[#8d6e63]">
                     <input 
@@ -126,21 +113,20 @@
                         <span v-else>구하기!</span>
                     </button>
                 </div>
-                <!-- API Key Config Toggle -->
+                
                 <button @click="showConfig = !showConfig" class="absolute -bottom-8 right-0 text-xs text-[#8d6e63] underline hover:text-[#5d4037] flex items-center">
-                    <span v-if="hfToken" class="mr-1 text-green-600 font-bold">✅ HF 토큰 입력됨</span>
-                    ⚙️ 검색 설정 (API Key)
+                    <span v-if="prodiaKey" class="mr-1 text-green-600 font-bold">✅ Prodia 준비됨</span>
+                    ⚙️ 검색 설정
                 </button>
             </div>
 
-            <!-- Clear All Button -->
             <div class="fixed bottom-4 left-4 z-50">
                 <button @click="clearAllItems" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded shadow opacity-80 hover:opacity-100 transition-opacity">
                     🗑️ 전체 초기화
                 </button>
             </div>
 
-            <!-- Config Panel (Hidden by default) -->
+            <!-- Config Panel -->
             <div v-if="showConfig" class="max-w-xl mx-auto mb-8 p-4 bg-white border border-[#d7ccc8] rounded shadow-inner text-sm">
                 <h3 class="font-bold mb-2">🔧 설정 (Configuration)</h3>
                 
@@ -150,27 +136,10 @@
                     <input v-model="prodiaKey" type="password" placeholder="prodia_..." class="border p-2 rounded w-full mb-1">
                 </div>
 
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-[#5d4037] mb-1">Hugging Face Token</label>
-                    <input v-model="hfToken" type="password" placeholder="hf_..." class="border p-2 rounded w-full mb-1">
-                </div>
-
-                <hr class="border-t border-gray-200 my-3">
-
-                <div class="mb-2 opacity-50 hover:opacity-100 transition-opacity">
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Google Search (선택사항)</label>
-                    <div class="grid gap-2">
-                        <input v-model="apiKey" type="password" placeholder="Google API Key" class="border p-2 rounded">
-                        <input v-model="searchEngineId" type="text" placeholder="Search Engine ID (CX)" class="border p-2 rounded">
-                    </div>
-                </div>
-
                 <button @click="saveConfig" class="bg-[#2c3e50] text-white w-full py-2 rounded hover:bg-[#34495e] mt-2 font-bold">설정 저장하기</button>
             </div>
 
-            <!-- The Stall (Grid) -->
             <div class="wood-frame p-6 min-h-[600px] bg-[#e0dcd5] relative">
-                <!-- Roof pattern -->
                 <div class="absolute -top-4 left-0 w-full h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAxMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAgMTAgTDEwIDAgTDIwIDEwIFoiIGZpbGw9IiNjMDM5MmIiLz48L3N2Zz4=')] bg-repeat-x bg-contain"></div>
 
                 <div v-if="items.length === 0" class="h-full flex flex-col items-center justify-center text-[#8d6e63] opacity-50 min-h-[500px]">
@@ -184,15 +153,13 @@
                          :style="{ '--rotation': item.rotation + 'deg' }">
                         <div class="aspect-square bg-gray-100 mb-3 overflow-hidden border border-gray-200 flex items-center justify-center bg-cover bg-center"
                              :style="{ backgroundImage: `url(${item.url})` }">
-                            <!-- Image handled by background-image for better fitting, but keeping img for accessibility if needed, hidden -->
                             <img :src="item.url" :alt="item.keyword" class="opacity-0 w-full h-full" @error="handleImageError(index)">
                         </div>
                         <div class="text-center">
                             <div class="font-bold text-[#2c2c2c] truncate">{{ item.keyword }}</div>
                             <div class="text-xs text-gray-500">{{ item.date }}</div>
                         </div>
-                        <!-- Delete button (visible on hover) -->
-                        <button @click="removeItem(index)" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-xs">
+                        <button @click="removeItem(index)" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity text-xs">
                             ×
                         </button>
                     </div>
@@ -215,35 +182,17 @@
                 const items = ref([])
                 const isLoading = ref(false)
                 const showConfig = ref(false)
-                
-                // Config
-                const apiKey = ref('')
-                const searchEngineId = ref('')
-                const hfToken = ref('')
                 const prodiaKey = ref('')
 
                 onMounted(() => {
-                    // Load data from LocalStorage
                     const savedItems = localStorage.getItem('estelle_store_items')
                     if (savedItems) items.value = JSON.parse(savedItems)
-
-                    const savedKey = localStorage.getItem('google_api_key')
-                    if (savedKey) apiKey.value = savedKey
-
-                    const savedCx = localStorage.getItem('google_cx')
-                    if (savedCx) searchEngineId.value = savedCx
-                    
-                    const savedHf = localStorage.getItem('hf_token')
-                    if (savedHf) hfToken.value = savedHf
 
                     const savedProdia = localStorage.getItem('prodia_key')
                     if (savedProdia) prodiaKey.value = savedProdia
                 })
 
                 const saveConfig = () => {
-                    localStorage.setItem('google_api_key', apiKey.value)
-                    localStorage.setItem('google_cx', searchEngineId.value)
-                    localStorage.setItem('hf_token', hfToken.value)
                     localStorage.setItem('prodia_key', prodiaKey.value)
                     showConfig.value = false
                     alert('설정이 저장되었어! 이제 에스텔이 더 똑똑해질 거야! ✨')
@@ -258,12 +207,11 @@
                     try {
                         let imageUrl = ''
                         
-                        // Priority 0: Prodia API (Best Quality, Anime Specialized)
+                        // 1. Prodia API (Primary)
                         if (prodiaKey.value) {
                             try {
                                 console.log("Generating with Prodia (Anything V5)...")
                                 
-                                // 1. Generate Job
                                 const generateResp = await fetch("https://api.prodia.com/v1/sd/generate", {
                                     method: "POST",
                                     headers: {
@@ -271,7 +219,7 @@
                                         "Content-Type": "application/json"
                                     },
                                     body: JSON.stringify({
-                                        model: "anything-v5-PrtRE.safetensors [893e49b9]", // Anime Specialized
+                                        model: "anything-v5-PrtRE.safetensors [893e49b9]", 
                                         prompt: `(masterpiece), best quality, ${keyword}, anime style, highly detailed, vibrant colors`,
                                         negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
                                         steps: 25,
@@ -281,76 +229,40 @@
                                     })
                                 });
 
-                                if (!generateResp.ok) throw new Error(`Prodia Generate Failed: ${generateResp.status}`);
+                                if (!generateResp.ok) {
+                                    const errText = await generateResp.text();
+                                    throw new Error(`Prodia Error: ${generateResp.status} - ${errText}`);
+                                }
+                                
                                 const job = await generateResp.json();
                                 const jobId = job.job;
 
-                                // 2. Poll for Result
                                 let status = "queued";
                                 while (status !== "succeeded" && status !== "failed") {
-                                    await new Promise(r => setTimeout(r, 1000)); // Wait 1s
+                                    await new Promise(r => setTimeout(r, 1500));
                                     const jobResp = await fetch(`https://api.prodia.com/v1/job/${jobId}`, {
                                         headers: { "X-Prodia-Key": prodiaKey.value }
                                     });
+                                    
                                     if (!jobResp.ok) throw new Error("Prodia Polling Failed");
                                     const jobStatus = await jobResp.json();
                                     status = jobStatus.status;
+                                    
                                     if (status === "succeeded") {
                                         imageUrl = jobStatus.imageUrl;
+                                    } else if (status === "failed") {
+                                        throw new Error("Prodia generation failed on server side.");
                                     }
                                 }
-                                
-                                if (!imageUrl) throw new Error("Prodia generation failed.");
 
                             } catch (e) {
                                 console.error("Prodia Error:", e);
-                                alert(`Prodia 생성 실패! 키를 확인해줘.\n(${e.message})`);
+                                alert(`Prodia 생성 실패!\n키가 올바른지 확인해줘.\n(${e.message})`);
                                 isLoading.value = false;
                                 return;
                             }
                         }
-                        
-                        // Priority 1: Pollinations AI (Flux Model + Anime Prompt) - Fallback logic removed as requested to focus on Prodia/HF
-                        else if (hfToken.value) {
-                            // ... HF logic (kept as backup option if user switches keys) ...
-                            // But user wants Prodia now.
-                            // I will keep the HF logic block but Prodia takes precedence.
-                             try {
-                                console.log("Trying Hugging Face generation...")
-                                // Using SDXL Base 1.0 for better stability and CORS support
-                                const response = await fetch(
-                                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-                                    {
-                                        headers: {
-                                            Authorization: `Bearer ${hfToken.value}`,
-                                            "Content-Type": "application/json",
-                                        },
-                                        method: "POST",
-                                        body: JSON.stringify({ 
-                                            inputs: `(anime style), masterpiece, best quality, ${keyword}, makoto shinkai style, studio ghibli, vibrant colors, 8k wallpaper, highly detailed`,
-                                            parameters: {
-                                                negative_prompt: "photo, realistic, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry"
-                                            } 
-                                        }),
-                                    }
-                                );
-                                
-                                if (!response.ok) {
-                                    const errText = await response.text();
-                                    throw new Error(`HF API Error: ${response.status} ${errText}`);
-                                }
-                                
-                                const blob = await response.blob();
-                                imageUrl = URL.createObjectURL(blob); // Create local URL for the blob
-                                
-                            } catch (e) {
-                                console.error("Hugging Face failed:", e)
-                                alert(`Hugging Face 생성 실패!\n원인: ${e.message}\n(토큰이 올바른지, 혹은 모델 로딩 중인지 확인해줘!)`)
-                                isLoading.value = false
-                                return; // Stop here! Do not fallback.
-                            }
-                        }
-                        // Default Fallback (Pollinations) if NO keys are present
+                        // 2. Pollinations AI (Backup if no key)
                         else {
                              console.log("Generating with Pollinations Anime Mode (No Keys)...")
                              const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
@@ -358,10 +270,10 @@
                         }
 
                         addItem(keyword, imageUrl)
-                        searchKeyword.value = '' // Clear input
+                        searchKeyword.value = ''
 
                     } catch (error) {
-                        alert('이미지 생성 중 문제가 발생했어! 다시 시도해볼래? 😭')
+                        alert('이미지 생성 중 문제가 발생했어! 😭')
                         console.error(error)
                     } finally {
                         isLoading.value = false
@@ -374,17 +286,12 @@
                         keyword: keyword,
                         url: url,
                         date: new Date().toLocaleDateString(),
-                        rotation: (Math.random() * 6) - 3 // Random rotation -3deg to 3deg
+                        rotation: (Math.random() * 6) - 3
                     }
-
-                    // Add to beginning (unshift)
                     items.value.unshift(newItem)
-
-                    // Keep only 16 items
                     if (items.value.length > 16) {
                         items.value.pop()
                     }
-
                     saveItems()
                 }
 
@@ -399,33 +306,18 @@
 
                 const handleImageError = (index) => {
                     const item = items.value[index]
-                    
-                    // Initialize retry count if not present
-                    if (typeof item.retryCount === 'undefined') {
-                        item.retryCount = 0
-                    }
-
+                    if (typeof item.retryCount === 'undefined') item.retryCount = 0
                     item.retryCount++
 
                     if (item.retryCount > 2) {
-                        // Stop retrying after 2 failures and show a static placeholder
-                        console.warn(`Giving up on image for ${item.keyword} after ${item.retryCount} tries.`)
-                        // Use a reliable placeholder service
+                        console.warn(`Giving up on image for ${item.keyword}`)
                         item.url = `https://placehold.co/400x400/efebe9/8d6e63?text=Load+Failed`
                         return
                     }
 
-                    console.log(`Image load error for ${item.keyword}, retry #${item.retryCount}...`)
-                    
-                    // Retry Logic
-                    if (item.retryCount === 1) {
-                         // Retry 1: Try a specific Anime-tuned model prompt with Pollinations (Backup to HF)
-                         const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(item.keyword)}, anime style, makoto shinkai style, studio ghibli, vibrant lighting, highly detailed, 8k wallpaper`
-                         item.url = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
-                    } else if (item.retryCount === 2) {
-                         console.warn("Retrying with Pollinations Turbo model...")
-                         item.url = `https://image.pollinations.ai/prompt/anime ${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 9999)}`
-                    }
+                    console.log(`Retrying image... #${item.retryCount}`)
+                    // Fallback to simpler model on error
+                    item.url = `https://image.pollinations.ai/prompt/anime ${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 9999)}`
                 }
 
                 const clearAllItems = () => {
@@ -442,9 +334,6 @@
                     searchImage,
                     removeItem,
                     showConfig,
-                    apiKey,
-                    searchEngineId,
-                    hfToken,
                     prodiaKey,
                     saveConfig,
                     handleImageError,
