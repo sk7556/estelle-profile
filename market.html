@@ -292,11 +292,28 @@
                 }
 
                 const handleImageError = (index) => {
-                    // If image fails to load, replace with a placeholder or try fallback
                     const item = items.value[index]
-                    console.log(`Image load error for ${item.keyword}, retrying with backup generator...`)
-                    // Force a different generator or placeholder
-                    item.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 999)}&model=flux`
+                    
+                    // Initialize retry count if not present
+                    if (typeof item.retryCount === 'undefined') {
+                        item.retryCount = 0
+                    }
+
+                    item.retryCount++
+
+                    if (item.retryCount > 2) {
+                        // Stop retrying after 2 failures and show a static placeholder
+                        console.warn(`Giving up on image for ${item.keyword} after ${item.retryCount} tries.`)
+                        // Use a reliable placeholder service
+                        item.url = `https://placehold.co/400x400/efebe9/8d6e63?text=${encodeURIComponent(item.keyword)}`
+                        return
+                    }
+
+                    console.log(`Image load error for ${item.keyword}, retry #${item.retryCount}...`)
+                    
+                    // Force a different generator params to avoid cache/same error
+                    // Add a random timestamp to bypass browser cache
+                    item.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&t=${Date.now()}&model=flux`
                 }
 
                 return {
