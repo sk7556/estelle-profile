@@ -81,7 +81,7 @@
                     <a href="index.html" class="nav-link text-gray-300">Main</a>
                     <a href="profile.html" class="nav-link text-gray-300">Profile</a>
                     <a href="health.html" class="nav-link text-gray-300">Health Log</a>
-                    <a href="#" class="nav-link text-white font-bold border-b-2 border-white pb-1">General Store</a>
+                    <a href="store_v2.html" class="nav-link text-white font-bold border-b-2 border-white pb-1">General Store</a>
                 </div>
             </div>
         </nav>
@@ -90,8 +90,8 @@
             
             <div class="text-center mb-10">
                 <div class="inline-block bg-[#c0392b] text-white px-4 py-1 rounded-full text-sm font-bold mb-2 shadow-sm">NEW OPEN!</div>
-                <h1 class="text-4xl font-bold text-[#5d4037] mb-2">📦 에스텔의 만물상</h1>
-                <p class="text-[#795548] italic">"뭐든지 구해다 줄게! 말만 해!"</p>
+                <h1 class="text-4xl font-bold text-[#5d4037] mb-2">📦 에스텔의 만물상 V2</h1>
+                <p class="text-[#795548] italic">"Prodia 엔진 탑재 완료!"</p>
             </div>
 
             <div class="max-w-xl mx-auto mb-12 relative">
@@ -201,18 +201,29 @@
                 const searchImage = async () => {
                     const keyword = searchKeyword.value.trim()
                     if (!keyword) return
+                    
+                    if (!prodiaKey.value) {
+                         alert("⚠️ Prodia API Key가 없습니다! 설정창에서 키를 입력해주세요.")
+                         showConfig.value = true
+                         return
+                    }
 
                     isLoading.value = true
 
                     try {
                         let imageUrl = ''
                         
-                        // 1. Prodia API (Primary)
+                        // Priority 1: Prodia API (Primary) via Proxy
                         if (prodiaKey.value) {
                             try {
-                                console.log("Generating with Prodia (Anything V5)...")
+                                console.log("Generating with Prodia (via Proxy)...")
                                 
-                                const generateResp = await fetch("https://api.prodia.com/v1/sd/generate", {
+                                // PROXY FIX APPLIED HERE
+                                const proxyUrl = "https://corsproxy.io/?";
+                                const targetUrl = "https://api.prodia.com/v1/sd/generate";
+                                const fullUrl = proxyUrl + encodeURIComponent(targetUrl);
+                                
+                                const generateResp = await fetch(fullUrl, {
                                     method: "POST",
                                     headers: {
                                         "X-Prodia-Key": prodiaKey.value,
@@ -238,9 +249,14 @@
                                 const jobId = job.job;
 
                                 let status = "queued";
-                                while (status !== "succeeded" && status !== "failed") {
+                                let attempts = 0;
+                                while (status !== "succeeded" && status !== "failed" && attempts < 30) {
                                     await new Promise(r => setTimeout(r, 1500));
-                                    const jobResp = await fetch(`https://api.prodia.com/v1/job/${jobId}`, {
+                                    attempts++;
+                                    const jobTargetUrl = `https://api.prodia.com/v1/job/${jobId}`;
+                                    const jobFullUrl = proxyUrl + encodeURIComponent(jobTargetUrl);
+                                    
+                                    const jobResp = await fetch(jobFullUrl, {
                                         headers: { "X-Prodia-Key": prodiaKey.value }
                                     });
                                     
@@ -261,12 +277,6 @@
                                 isLoading.value = false;
                                 return;
                             }
-                        }
-                        // 2. Pollinations AI (Backup if no key)
-                        else {
-                             console.log("Generating with Pollinations Anime Mode (No Keys)...")
-                             const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
-                             imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
                         }
 
                         addItem(keyword, imageUrl)
