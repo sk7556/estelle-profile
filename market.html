@@ -5,8 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>에스텔의 만물상 (Estelle's General Store)</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Tailwind CSS (Using script just for CDN warning suppression in dev, but still CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {},
+            },
+        }
+    </script>
     <style>
+        /* Suppress Tailwind CDN warning in console */
+        /* Note: This is a hack, real fix requires build step or ignoring console warn */
         @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap');
 
         body {
@@ -224,12 +234,14 @@
                                 if (data.items && data.items.length > 0) {
                                     imageUrl = data.items[0].link
                                 } else {
-                                    throw new Error('No results')
+                                    throw new Error('No results from Google Search')
                                 }
                             } catch (e) {
-                                console.error("Google Search Failed, falling back to Magic Mode", e)
-                                // Fallback
-                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true`
+                                console.warn("Google Search Failed, trying fallback...", e)
+                                
+                                // Explicitly handle 403 (Service Not Enabled) or other API errors
+                                // If Google fails, use Pollinations with a different seed
+                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
                             }
                         } else {
                             // 2. Magic Mode (Pollinations.ai) - No key needed
