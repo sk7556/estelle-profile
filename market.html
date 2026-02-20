@@ -353,37 +353,10 @@
                     localStorage.setItem('estelle_store_items', JSON.stringify(items.value))
                 }
 
-                const handleImageError = (index) => {
-                    const item = items.value[index]
-                    
-                    // Initialize retry count if not present
-                    if (typeof item.retryCount === 'undefined') {
-                        item.retryCount = 0
-                    }
-
-                    item.retryCount++
-
-                    if (item.retryCount > 2) {
-                        // Stop retrying after 2 failures and show a static placeholder
-                        console.warn(`Giving up on image for ${item.keyword} after ${item.retryCount} tries.`)
-                        // Use a reliable placeholder service
-                        item.url = `https://placehold.co/400x400/efebe9/8d6e63?text=Load+Failed`
-                        return
-                    }
-
-                    console.log(`Image load error for ${item.keyword}, retry #${item.retryCount}...`)
-                    
-                    // Retry Logic
-                    if (item.retryCount === 1) {
-                         // Retry 1: Try a specific Anime-tuned model prompt with Pollinations (Backup to HF)
-                         // Wait, if HF failed, we shouldn't rely on it again if we want fallback.
-                         // But if HF worked and returned a blob, it shouldn't error.
-                         // This error handler catches Pollinations errors mostly.
-                         const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(item.keyword)}, anime style, makoto shinkai style, studio ghibli, vibrant lighting, highly detailed, 8k wallpaper`
-                         item.url = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
-                    } else if (item.retryCount === 2) {
-                         console.warn("Retrying with Pollinations Turbo model...")
-                         item.url = `https://image.pollinations.ai/prompt/anime ${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 9999)}`
+                const clearAllItems = () => {
+                    if (confirm('정말로 가판대를 싹 비울까?')) {
+                        items.value = []
+                        saveItems()
                     }
                 }
 
