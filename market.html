@@ -145,10 +145,14 @@
                 <h3 class="font-bold mb-2">🔧 설정 (Configuration)</h3>
                 
                 <div class="mb-4">
-                    <label class="block text-xs font-bold text-[#5d4037] mb-1">Hugging Face Token (추천! 🏆)</label>
-                    <p class="text-xs text-gray-500 mb-1">고퀄리티 애니메이션 그림을 원하면 토큰을 넣어줘! (무료)</p>
+                    <label class="block text-xs font-bold text-[#e67e22] mb-1">Prodia API Key (최고급 ✨)</label>
+                    <p class="text-xs text-gray-500 mb-1">Anything V5 모델 사용 (찐 애니풍!)</p>
+                    <input v-model="prodiaKey" type="password" placeholder="prodia_..." class="border p-2 rounded w-full mb-1">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-[#5d4037] mb-1">Hugging Face Token</label>
                     <input v-model="hfToken" type="password" placeholder="hf_..." class="border p-2 rounded w-full mb-1">
-                    <p class="text-[10px] text-[#c0392b]" v-if="!hfToken">※ 토큰이 없으면 불안정한 무료 AI를 사용합니다.</p>
                 </div>
 
                 <hr class="border-t border-gray-200 my-3">
@@ -216,6 +220,7 @@
                 const apiKey = ref('')
                 const searchEngineId = ref('')
                 const hfToken = ref('')
+                const prodiaKey = ref('')
 
                 onMounted(() => {
                     // Load data from LocalStorage
@@ -230,12 +235,16 @@
                     
                     const savedHf = localStorage.getItem('hf_token')
                     if (savedHf) hfToken.value = savedHf
+
+                    const savedProdia = localStorage.getItem('prodia_key')
+                    if (savedProdia) prodiaKey.value = savedProdia
                 })
 
                 const saveConfig = () => {
                     localStorage.setItem('google_api_key', apiKey.value)
                     localStorage.setItem('google_cx', searchEngineId.value)
                     localStorage.setItem('hf_token', hfToken.value)
+                    localStorage.setItem('prodia_key', prodiaKey.value)
                     showConfig.value = false
                     alert('설정이 저장되었어! 이제 에스텔이 더 똑똑해질 거야! ✨')
                 }
@@ -249,15 +258,104 @@
                     try {
                         let imageUrl = ''
                         
-                        // Priority 1: Pollinations AI (Flux Model + Anime Prompt)
-                        // HF API has CORS issues on static sites, so we use Pollinations which is CORS-friendly.
-                        console.log("Generating with Pollinations Anime Mode...")
+                        // Priority 0: Prodia API (Best Quality, Anime Specialized)
+                        if (prodiaKey.value) {
+                            try {
+                                console.log("Generating with Prodia (Anything V5)...")
+                                
+                                // 1. Generate Job
+                                const generateResp = await fetch("https://api.prodia.com/v1/sd/generate", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-Prodia-Key": prodiaKey.value,
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        model: "anything-v5-PrtRE.safetensors [893e49b9]", // Anime Specialized
+                                        prompt: `(masterpiece), best quality, ${keyword}, anime style, highly detailed, vibrant colors`,
+                                        negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+                                        steps: 25,
+                                        cfg_scale: 7,
+                                        seed: -1,
+                                        upscale: false
+                                    })
+                                });
+
+                                if (!generateResp.ok) throw new Error(`Prodia Generate Failed: ${generateResp.status}`);
+                                const job = await generateResp.json();
+                                const jobId = job.job;
+
+                                // 2. Poll for Result
+                                let status = "queued";
+                                while (status !== "succeeded" && status !== "failed") {
+                                    await new Promise(r => setTimeout(r, 1000)); // Wait 1s
+                                    const jobResp = await fetch(`https://api.prodia.com/v1/job/${jobId}`, {
+                                        headers: { "X-Prodia-Key": prodiaKey.value }
+                                    });
+                                    if (!jobResp.ok) throw new Error("Prodia Polling Failed");
+                                    const jobStatus = await jobResp.json();
+                                    status = jobStatus.status;
+                                    if (status === "succeeded") {
+                                        imageUrl = jobStatus.imageUrl;
+                                    }
+                                }
+                                
+                                if (!imageUrl) throw new Error("Prodia generation failed.");
+
+                            } catch (e) {
+                                console.error("Prodia Error:", e);
+                                alert(`Prodia 생성 실패! 키를 확인해줘.\n(${e.message})`);
+                                isLoading.value = false;
+                                return;
+                            }
+                        }
                         
-                        // Powerful Anime Prompt (Simplified for speed)
-                        const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
-                        
-                        // Use Turbo model for speed and stability
-                        imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
+                        // Priority 1: Pollinations AI (Flux Model + Anime Prompt) - Fallback logic removed as requested to focus on Prodia/HF
+                        else if (hfToken.value) {
+                            // ... HF logic (kept as backup option if user switches keys) ...
+                            // But user wants Prodia now.
+                            // I will keep the HF logic block but Prodia takes precedence.
+                             try {
+                                console.log("Trying Hugging Face generation...")
+                                // Using SDXL Base 1.0 for better stability and CORS support
+                                const response = await fetch(
+                                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+                                    {
+                                        headers: {
+                                            Authorization: `Bearer ${hfToken.value}`,
+                                            "Content-Type": "application/json",
+                                        },
+                                        method: "POST",
+                                        body: JSON.stringify({ 
+                                            inputs: `(anime style), masterpiece, best quality, ${keyword}, makoto shinkai style, studio ghibli, vibrant colors, 8k wallpaper, highly detailed`,
+                                            parameters: {
+                                                negative_prompt: "photo, realistic, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry"
+                                            } 
+                                        }),
+                                    }
+                                );
+                                
+                                if (!response.ok) {
+                                    const errText = await response.text();
+                                    throw new Error(`HF API Error: ${response.status} ${errText}`);
+                                }
+                                
+                                const blob = await response.blob();
+                                imageUrl = URL.createObjectURL(blob); // Create local URL for the blob
+                                
+                            } catch (e) {
+                                console.error("Hugging Face failed:", e)
+                                alert(`Hugging Face 생성 실패!\n원인: ${e.message}\n(토큰이 올바른지, 혹은 모델 로딩 중인지 확인해줘!)`)
+                                isLoading.value = false
+                                return; // Stop here! Do not fallback.
+                            }
+                        }
+                        // Default Fallback (Pollinations) if NO keys are present
+                        else {
+                             console.log("Generating with Pollinations Anime Mode (No Keys)...")
+                             const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
+                             imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
+                        }
 
                         addItem(keyword, imageUrl)
                         searchKeyword.value = '' // Clear input
@@ -347,6 +445,7 @@
                     apiKey,
                     searchEngineId,
                     hfToken,
+                    prodiaKey,
                     saveConfig,
                     handleImageError,
                     clearAllItems
