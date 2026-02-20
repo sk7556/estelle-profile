@@ -162,8 +162,10 @@
                     <div v-for="(item, index) in items" :key="item.id" 
                          class="item-card polaroid"
                          :style="{ '--rotation': item.rotation + 'deg' }">
-                        <div class="aspect-square bg-gray-100 mb-3 overflow-hidden border border-gray-200">
-                            <img :src="item.url" :alt="item.keyword" class="w-full h-full object-cover">
+                        <div class="aspect-square bg-gray-100 mb-3 overflow-hidden border border-gray-200 flex items-center justify-center bg-cover bg-center"
+                             :style="{ backgroundImage: `url(${item.url})` }">
+                            <!-- Image handled by background-image for better fitting, but keeping img for accessibility if needed, hidden -->
+                            <img :src="item.url" :alt="item.keyword" class="opacity-0 w-full h-full" @error="handleImageError(index)">
                         </div>
                         <div class="text-center">
                             <div class="font-bold text-[#2c2c2c] truncate">{{ item.keyword }}</div>
@@ -289,6 +291,14 @@
                     localStorage.setItem('estelle_store_items', JSON.stringify(items.value))
                 }
 
+                const handleImageError = (index) => {
+                    // If image fails to load, replace with a placeholder or try fallback
+                    const item = items.value[index]
+                    console.log(`Image load error for ${item.keyword}, retrying with backup generator...`)
+                    // Force a different generator or placeholder
+                    item.url = `https://image.pollinations.ai/prompt/${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 999)}&model=flux`
+                }
+
                 return {
                     searchKeyword,
                     items,
@@ -298,7 +308,8 @@
                     showConfig,
                     apiKey,
                     searchEngineId,
-                    saveConfig
+                    saveConfig,
+                    handleImageError
                 }
             }
         }).mount('#app')
