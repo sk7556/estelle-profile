@@ -381,17 +381,13 @@
                          // Adding "Makoto Shinkai" and "Studio Ghibli" style keywords for better aesthetics
                          const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(item.keyword)}, anime style, makoto shinkai style, studio ghibli, vibrant lighting, highly detailed, 8k wallpaper`
                          item.url = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
+                    } else if (item.retryCount === 2) {
+                         console.warn("Retrying with Pollinations Turbo model...")
+                         item.url = `https://image.pollinations.ai/prompt/anime ${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 9999)}`
                     } else {
-                         console.log(`AI failed, switching to LoremFlickr for ${item.keyword}...`)
-                         // Translate keywords to english for better loremflickr matches or use generic terms
-                         // Simple hack: if it contains Korean, just use 'cat,dog,nature' to get random nice images
-                         // because LoremFlickr keyword matching with Korean is poor
-                         let fallbackKeywords = encodeURIComponent(item.keyword)
-                         if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(item.keyword)) {
-                            // If Korean text, just give me a random nice photo (cat, food, nature)
-                            fallbackKeywords = 'cat,food,nature,city'
-                         }
-                         item.url = `https://loremflickr.com/400/400/${fallbackKeywords}?lock=${Math.floor(Math.random() * 9999)}`
+                         // Give up
+                         console.error("All image sources failed.")
+                         item.url = `https://placehold.co/400x400/efebe9/8d6e63?text=Load+Failed`
                     }
                 }
 
