@@ -249,73 +249,21 @@
                     try {
                         let imageUrl = ''
                         
-                        // 0. Priority: Hugging Face (If token exists)
-                        if (hfToken.value) {
-                            try {
-                                console.log("Trying Hugging Face generation...")
-                                // Using SDXL Base 1.0 for better stability and CORS support
-                                const response = await fetch(
-                                    "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-                                    {
-                                        headers: {
-                                            Authorization: `Bearer ${hfToken.value}`,
-                                            "Content-Type": "application/json",
-                                        },
-                                        method: "POST",
-                                        body: JSON.stringify({ 
-                                            inputs: `(anime style), masterpiece, best quality, ${keyword}, makoto shinkai style, studio ghibli, vibrant colors, 8k wallpaper, highly detailed`,
-                                            parameters: {
-                                                negative_prompt: "photo, realistic, text, error, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry"
-                                            } 
-                                        }),
-                                    }
-                                );
-                                
-                                if (!response.ok) {
-                                    const errText = await response.text();
-                                    throw new Error(`HF API Error: ${response.status} ${errText}`);
-                                }
-                                
-                                const blob = await response.blob();
-                                imageUrl = URL.createObjectURL(blob); // Create local URL for the blob
-                                
-                            } catch (e) {
-                                console.error("Hugging Face failed:", e)
-                                alert(`Hugging Face 생성 실패!\n원인: ${e.message}\n(토큰이 올바른지, 혹은 모델 로딩 중인지 확인해줘!)`)
-                                isLoading.value = false
-                                return; // Stop here! Do not fallback.
-                            }
-                        }
-
-                        // 1. Try Google Search if keys exist (and HF didn't run or failed)
-                        else if (!imageUrl && apiKey.value && searchEngineId.value) {
-                            try {
-                                const response = await fetch(`https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(keyword)}&cx=${searchEngineId.value}&key=${apiKey.value}&searchType=image&num=1`)
-                                const data = await response.json()
-                                if (data.items && data.items.length > 0) {
-                                    imageUrl = data.items[0].link
-                                } else {
-                                    throw new Error('No results from Google Search')
-                                }
-                            } catch (e) {
-                                console.warn("Google Search Failed, trying fallback...", e)
-                                
-                                // Explicitly handle 403 (Service Not Enabled) or other API errors
-                                // If Google fails, use Pollinations with Anime/Pixiv Style
-                                const prompt = `anime style illustration of ${keyword}, pixiv style, high quality, masterpiece, 8k`
-                                imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
-                            }
-                        } else {
-                            // 2. Magic Mode (Pollinations.ai) - No key needed
-                            const prompt = `anime style illustration of ${keyword}, pixiv style, high quality, masterpiece, 8k`
-                            imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 1000)}&model=flux`
-                        }
+                        // Priority 1: Pollinations AI (Flux Model + Anime Prompt)
+                        // HF API has CORS issues on static sites, so we use Pollinations which is CORS-friendly.
+                        console.log("Generating with Pollinations Anime Mode...")
+                        
+                        // Powerful Anime Prompt
+                        const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(keyword)}, anime style, japanimation, cel shaded, makoto shinkai style, studio ghibli, vibrant colors, highly detailed, 8k wallpaper`
+                        
+                        // Use Flux model for best quality
+                        imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
 
                         addItem(keyword, imageUrl)
                         searchKeyword.value = '' // Clear input
 
                     } catch (error) {
-                        alert('앗! 물건을 구해오다가 넘어졌어... 다시 시도해볼래? 😭')
+                        alert('이미지 생성 중 문제가 발생했어! 다시 시도해볼래? 😭')
                         console.error(error)
                     } finally {
                         isLoading.value = false
