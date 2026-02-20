@@ -319,9 +319,16 @@
                          // Retry 1: AI with simpler params (Default model, faster)
                          item.url = `https://image.pollinations.ai/prompt/anime style ${encodeURIComponent(item.keyword)}, pixiv masterpiece, 8k resolution?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
                     } else {
-                         // Retry 2: Fallback to LoremFlickr (Real photos, very stable)
                          console.log(`AI failed, switching to LoremFlickr for ${item.keyword}...`)
-                         item.url = `https://loremflickr.com/400/400/${encodeURIComponent(item.keyword)}?lock=${Math.floor(Math.random() * 9999)}`
+                         // Translate keywords to english for better loremflickr matches or use generic terms
+                         // Simple hack: if it contains Korean, just use 'cat,dog,nature' to get random nice images
+                         // because LoremFlickr keyword matching with Korean is poor
+                         let fallbackKeywords = encodeURIComponent(item.keyword)
+                         if (/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(item.keyword)) {
+                            // If Korean text, just give me a random nice photo (cat, food, nature)
+                            fallbackKeywords = 'cat,food,nature,city'
+                         }
+                         item.url = `https://loremflickr.com/400/400/${fallbackKeywords}?lock=${Math.floor(Math.random() * 9999)}`
                     }
                 }
 
