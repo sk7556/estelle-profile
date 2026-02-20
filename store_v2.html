@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>에스텔의 만물상 (Estelle's General Store)</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Gowun Batang', serif;
+            background-color: #fdfaf5;
+            background-image: radial-gradient(#d7ccc8 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .wood-frame {
+            background: #8d6e63;
+            border: 4px solid #5d4037;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .shelf-bg {
+            background: #d7ccc8;
+            background-image: linear-gradient(to bottom, transparent 95%, rgba(0,0,0,0.1) 95%);
+            background-size: 100% 20px;
+        }
+
+        .item-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #c0392b;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .polaroid {
+            background: #fff;
+            padding: 10px 10px 25px 10px;
+            box-shadow: 2px 3px 5px rgba(0,0,0,0.15);
+            transform: rotate(var(--rotation));
+        }
+
+        .nav-link {
+            transition: color 0.2s;
+        }
+        .nav-link:hover {
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="text-[#2c2c2c]">
+
+    <div id="app" class="min-h-screen flex flex-col">
+        <nav class="bg-[#2c3e50] text-white p-4 shadow-md fixed w-full z-50">
+            <div class="container mx-auto flex justify-between items-center">
+                <a href="index.html" class="font-bold text-xl tracking-wider hover:text-[#ecf0f1]">🛡️ Bracer Guild</a>
+                <div class="space-x-6 text-sm">
+                    <a href="index.html" class="nav-link text-gray-300">Main</a>
+                    <a href="profile.html" class="nav-link text-gray-300">Profile</a>
+                    <a href="health.html" class="nav-link text-gray-300">Health Log</a>
+                    <a href="store_v2.html" class="nav-link text-white font-bold border-b-2 border-white pb-1">General Store</a>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow container mx-auto pt-24 pb-12 px-4">
+            
+            <div class="text-center mb-10">
+                <div class="inline-block bg-[#c0392b] text-white px-4 py-1 rounded-full text-sm font-bold mb-2 shadow-sm">NEW OPEN!</div>
+                <h1 class="text-4xl font-bold text-[#5d4037] mb-2">📦 에스텔의 만물상</h1>
+                <p class="text-[#795548] italic">"뭐든지 구해다 줄게! 말만 해!"</p>
+            </div>
+
+            <div class="max-w-xl mx-auto mb-12 relative">
+                <div class="flex shadow-lg rounded-lg overflow-hidden border-2 border-[#8d6e63]">
+                    <input 
+                        v-model="searchKeyword" 
+                        @keyup.enter="searchImage"
+                        type="text" 
+                        placeholder="가판대에 올릴 물건을 입력해 (예: 맛있는 라면)" 
+                        class="flex-grow px-6 py-4 text-lg focus:outline-none bg-[#fffaf0] placeholder-[#a1887f]"
+                        :disabled="isLoading"
+                    >
+                    <button 
+                        @click="searchImage" 
+                        class="bg-[#8d6e63] hover:bg-[#6d4c41] text-white px-8 py-2 font-bold transition-colors flex items-center justify-center min-w-[100px]"
+                        :disabled="isLoading"
+                    >
+                        <div v-if="isLoading" class="loading-spinner w-6 h-6 border-2"></div>
+                        <span v-else>구하기!</span>
+                    </button>
+                </div>
+                
+                <button @click="showConfig = !showConfig" class="absolute -bottom-8 right-0 text-xs text-[#8d6e63] underline hover:text-[#5d4037] flex items-center">
+                    <span v-if="prodiaKey" class="mr-1 text-green-600 font-bold">✅ Prodia 준비됨</span>
+                    ⚙️ 검색 설정
+                </button>
+            </div>
+
+            <div class="fixed bottom-4 left-4 z-50">
+                <button @click="clearAllItems" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded shadow opacity-80 hover:opacity-100 transition-opacity">
+                    🗑️ 전체 초기화
+                </button>
+            </div>
+
+            <!-- Config Panel -->
+            <div v-if="showConfig" class="max-w-xl mx-auto mb-8 p-4 bg-white border border-[#d7ccc8] rounded shadow-inner text-sm">
+                <h3 class="font-bold mb-2">🔧 설정 (Configuration)</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-[#e67e22] mb-1">Prodia API Key (최고급 ✨)</label>
+                    <p class="text-xs text-gray-500 mb-1">Anything V5 모델 사용 (찐 애니풍!)</p>
+                    <input v-model="prodiaKey" type="password" placeholder="prodia_..." class="border p-2 rounded w-full mb-1">
+                </div>
+
+                <button @click="saveConfig" class="bg-[#2c3e50] text-white w-full py-2 rounded hover:bg-[#34495e] mt-2 font-bold">설정 저장하기</button>
+            </div>
+
+            <div class="wood-frame p-6 min-h-[600px] bg-[#e0dcd5] relative">
+                <div class="absolute -top-4 left-0 w-full h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAxMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAgMTAgTDEwIDAgTDIwIDEwIFoiIGZpbGw9IiNjMDM5MmIiLz48L3N2Zz4=')] bg-repeat-x bg-contain"></div>
+
+                <div v-if="items.length === 0" class="h-full flex flex-col items-center justify-center text-[#8d6e63] opacity-50 min-h-[500px]">
+                    <span class="text-6xl mb-4">🕸️</span>
+                    <p>가판대가 비어있어! 뭔가 주문해볼래?</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
+                    <div v-for="(item, index) in items" :key="item.id" 
+                         class="item-card polaroid"
+                         :style="{ '--rotation': item.rotation + 'deg' }">
+                        <div class="aspect-square bg-gray-100 mb-3 overflow-hidden border border-gray-200 flex items-center justify-center bg-cover bg-center"
+                             :style="{ backgroundImage: `url(${item.url})` }">
+                            <img :src="item.url" :alt="item.keyword" class="opacity-0 w-full h-full" @error="handleImageError(index)">
+                        </div>
+                        <div class="text-center">
+                            <div class="font-bold text-[#2c2c2c] truncate">{{ item.keyword }}</div>
+                            <div class="text-xs text-gray-500">{{ item.date }}</div>
+                        </div>
+                        <button @click="removeItem(index)" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity text-xs">
+                            ×
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4 text-xs text-[#8d6e63]">
+                * 최대 16개까지만 진열됩니다. (오래된 물건은 창고로 가요!)
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue
+
+        createApp({
+            setup() {
+                const searchKeyword = ref('')
+                const items = ref([])
+                const isLoading = ref(false)
+                const showConfig = ref(false)
+                const prodiaKey = ref('')
+
+                onMounted(() => {
+                    const savedItems = localStorage.getItem('estelle_store_items')
+                    if (savedItems) items.value = JSON.parse(savedItems)
+
+                    const savedProdia = localStorage.getItem('prodia_key')
+                    if (savedProdia) prodiaKey.value = savedProdia
+                })
+
+                const saveConfig = () => {
+                    localStorage.setItem('prodia_key', prodiaKey.value)
+                    showConfig.value = false
+                    alert('설정이 저장되었어! 이제 에스텔이 더 똑똑해질 거야! ✨')
+                }
+
+                const searchImage = async () => {
+                    const keyword = searchKeyword.value.trim()
+                    if (!keyword) return
+
+                    isLoading.value = true
+
+                    try {
+                        let imageUrl = ''
+                        
+                        // 1. Prodia API (Primary)
+                        if (prodiaKey.value) {
+                            try {
+                                console.log("Generating with Prodia (Anything V5)...")
+                                
+                                const generateResp = await fetch("https://api.prodia.com/v1/sd/generate", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-Prodia-Key": prodiaKey.value,
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        model: "anything-v5-PrtRE.safetensors [893e49b9]", 
+                                        prompt: `(masterpiece), best quality, ${keyword}, anime style, highly detailed, vibrant colors`,
+                                        negative_prompt: "lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+                                        steps: 25,
+                                        cfg_scale: 7,
+                                        seed: -1,
+                                        upscale: false
+                                    })
+                                });
+
+                                if (!generateResp.ok) {
+                                    const errText = await generateResp.text();
+                                    throw new Error(`Prodia Error: ${generateResp.status} - ${errText}`);
+                                }
+                                
+                                const job = await generateResp.json();
+                                const jobId = job.job;
+
+                                let status = "queued";
+                                while (status !== "succeeded" && status !== "failed") {
+                                    await new Promise(r => setTimeout(r, 1500));
+                                    const jobResp = await fetch(`https://api.prodia.com/v1/job/${jobId}`, {
+                                        headers: { "X-Prodia-Key": prodiaKey.value }
+                                    });
+                                    
+                                    if (!jobResp.ok) throw new Error("Prodia Polling Failed");
+                                    const jobStatus = await jobResp.json();
+                                    status = jobStatus.status;
+                                    
+                                    if (status === "succeeded") {
+                                        imageUrl = jobStatus.imageUrl;
+                                    } else if (status === "failed") {
+                                        throw new Error("Prodia generation failed on server side.");
+                                    }
+                                }
+
+                            } catch (e) {
+                                console.error("Prodia Error:", e);
+                                alert(`Prodia 생성 실패!\n키가 올바른지 확인해줘.\n(${e.message})`);
+                                isLoading.value = false;
+                                return;
+                            }
+                        }
+                        // 2. Pollinations AI (Backup if no key)
+                        else {
+                             console.log("Generating with Pollinations Anime Mode (No Keys)...")
+                             const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
+                             imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
+                        }
+
+                        addItem(keyword, imageUrl)
+                        searchKeyword.value = ''
+
+                    } catch (error) {
+                        alert('이미지 생성 중 문제가 발생했어! 😭')
+                        console.error(error)
+                    } finally {
+                        isLoading.value = false
+                    }
+                }
+
+                const addItem = (keyword, url) => {
+                    const newItem = {
+                        id: Date.now(),
+                        keyword: keyword,
+                        url: url,
+                        date: new Date().toLocaleDateString(),
+                        rotation: (Math.random() * 6) - 3
+                    }
+                    items.value.unshift(newItem)
+                    if (items.value.length > 16) {
+                        items.value.pop()
+                    }
+                    saveItems()
+                }
+
+                const removeItem = (index) => {
+                    items.value.splice(index, 1)
+                    saveItems()
+                }
+
+                const saveItems = () => {
+                    localStorage.setItem('estelle_store_items', JSON.stringify(items.value))
+                }
+
+                const handleImageError = (index) => {
+                    const item = items.value[index]
+                    if (typeof item.retryCount === 'undefined') item.retryCount = 0
+                    item.retryCount++
+
+                    if (item.retryCount > 2) {
+                        console.warn(`Giving up on image for ${item.keyword}`)
+                        item.url = `https://placehold.co/400x400/efebe9/8d6e63?text=Load+Failed`
+                        return
+                    }
+
+                    console.log(`Retrying image... #${item.retryCount}`)
+                    // Fallback to simpler model on error
+                    item.url = `https://image.pollinations.ai/prompt/anime ${encodeURIComponent(item.keyword)}?width=400&height=400&nologo=true&model=turbo&seed=${Math.floor(Math.random() * 9999)}`
+                }
+
+                const clearAllItems = () => {
+                    if (confirm('정말로 가판대를 싹 비울까?')) {
+                        items.value = []
+                        saveItems()
+                    }
+                }
+
+                return {
+                    searchKeyword,
+                    items,
+                    isLoading,
+                    searchImage,
+                    removeItem,
+                    showConfig,
+                    prodiaKey,
+                    saveConfig,
+                    handleImageError,
+                    clearAllItems
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
