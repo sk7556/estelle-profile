@@ -316,8 +316,10 @@
                     // Add a random timestamp to bypass browser cache
                     // Try a different AI model (default) or fallback to LoremFlickr for stability
                     if (item.retryCount === 1) {
-                         // Retry 1: AI with simpler params (Default model, faster)
-                         item.url = `https://image.pollinations.ai/prompt/anime style ${encodeURIComponent(item.keyword)}, pixiv masterpiece, 8k resolution?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
+                         // Retry 1: Try a specific Anime-tuned model prompt
+                         // Adding "Makoto Shinkai" and "Studio Ghibli" style keywords for better aesthetics
+                         const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(item.keyword)}, anime style, makoto shinkai style, studio ghibli, vibrant lighting, highly detailed, 8k wallpaper`
+                         item.url = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
                     } else {
                          console.log(`AI failed, switching to LoremFlickr for ${item.keyword}...`)
                          // Translate keywords to english for better loremflickr matches or use generic terms
