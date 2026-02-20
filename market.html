@@ -253,11 +253,11 @@
                         // HF API has CORS issues on static sites, so we use Pollinations which is CORS-friendly.
                         console.log("Generating with Pollinations Anime Mode...")
                         
-                        // Powerful Anime Prompt
-                        const animePrompt = `(masterpiece), best quality, ${encodeURIComponent(keyword)}, anime style, japanimation, cel shaded, makoto shinkai style, studio ghibli, vibrant colors, highly detailed, 8k wallpaper`
+                        // Powerful Anime Prompt (Simplified for speed)
+                        const animePrompt = `anime style ${encodeURIComponent(keyword)}, vibrant colors, studio ghibli`
                         
-                        // Use Flux model for best quality
-                        imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=flux`
+                        // Use Turbo model for speed and stability
+                        imageUrl = `https://image.pollinations.ai/prompt/${animePrompt}?width=400&height=400&nologo=true&seed=${Math.floor(Math.random() * 9999)}&model=turbo`
 
                         addItem(keyword, imageUrl)
                         searchKeyword.value = '' // Clear input
